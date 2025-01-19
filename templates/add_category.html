@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Category</title>
+</head>
+<body>
+    <h1>Add Category</h1>
+    <form method="POST" action="{{ url_for('add_category') }}">
+
+        <!-- Category Name -->
+        <label for="name">Category Name:</label>
+        <br>
+        <input type="text" id="name" name="name" required>
+        <br><br>
+
+        <!-- Category Description -->
+        <label for="description">Description (Optional):</label>
+        <br>
+        <textarea id="description" name="description" rows="4" cols="50"></textarea>
+        <br><br>
+
+        <!-- Submit Button -->
+        <button type="submit">Add Category</button>
+        <a href="{{ url_for('add_product') }}">Cancel</a>
+    </form>
+</body>
+</html>

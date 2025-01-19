@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Flavor</title>
+</head>
+<body>
+    <h1>Add Flavor</h1>
+    <form method="POST" action="{{ url_for('add_flavor') }}">
+        <!-- Flavor Name -->
+        <label for="name">Flavor Name:</label>
+        <br>
+        <input type="text" id="name" name="name" required>
+        <br><br>
+
+      
+        <!-- Submit Button -->
+        <button type="submit">Add Flavor</button>
+        <a href="{{ url_for('flavors') }}">Cancel</a>
+    </form>
+</body>
+</html>

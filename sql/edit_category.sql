@@ -1,0 +1,1 @@
+UPDATE categories SET name = %s, description = %s WHERE id = %s
