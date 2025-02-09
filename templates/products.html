@@ -3,44 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Production Management Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+        th.sort-asc::after {
+            content: " ▲";
+        }
+        th.sort-desc::after {
+            content: " ▼";
+        }
+        #filterInput {
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
 </head>
 <body>
-    <h1>Product Management Dashboard</h1>
 
-    <!-- Navigation Buttons -->
-    <div>
-        <a href="{{ url_for('categories') }}">
-            <button>Manage Categories</button>
-        </a>
+    <!-- Home Icon -->
+    <a href="{{ url_for('home') }}" id="home-icon">&#8962;</a> <!-- Unicode for home icon -->
+
+    
+    <h1>Production Management Dashboard</h1>
+
+    <!-- Tabs for Navigation -->
+    <div style="display: flex; gap: 20px; border-bottom: 1px solid #ccc; padding: 10px 0;">
+        <a href="{{ url_for('manufacturing_orders') }}" 
+               class="{{ 'active' if request.path == url_for('manufacturing_orders') else '' }}">Manufacturing Orders</a>
+        <a href="{{ url_for('products') }}" 
+           class="{{ 'active' if request.path == url_for('products') else '' }}">Products</a>
+        <a href="{{ url_for('categories') }}" 
+           class="{{ 'active' if request.path == url_for('categories') else '' }}">Categories</a>
+        <a href="{{ url_for('flavors') }}" 
+           class="{{ 'active' if request.path == url_for('flavors') else '' }}">Flavors</a>
+        <a href="{{ url_for('sizes') }}" 
+           class="{{ 'active' if request.path == url_for('sizes') else '' }}">Sizes</a>
+        <a href="{{ url_for('vendors') }}" 
+               class="{{ 'active' if request.path == url_for('vendors') else '' }}">Vendors</a>
+        <a href="{{ url_for('raw_materials') }}" 
+               class="{{ 'active' if request.path == url_for('raw_materials') else '' }}">Raw Materials</a>
+        <a href="{{ url_for('recipes') }}" 
+               class="{{ 'active' if request.path == url_for('raw_materials') else '' }}">Recipes</a>
 
     </div>
 
-    <div>
-        <a href="{{ url_for('flavors') }}">
-            <button>Manage Flavors</button>
-        </a>
 
-    </div>
     <br><br>
 
+
+    <!-- Filter Input -->
+    <input type="text" id="filterInput" placeholder="Search for products..." onkeyup="filterTable()">
+    
     <!-- Products Table -->
     <h2>All Products</h2>
     <a href="{{ url_for('add_product') }}">
         <button>Add Product</button>
     </a>
     <br><br>
-    <table border="1" cellpadding="5" cellspacing="0">
+    <table id="productsTable" border="1" cellpadding="5" cellspacing="0">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>SKU</th>
-                <th>Price (USD)</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Created At</th>
-                <th>Updated At</th>
+                <th onclick="sortTable(0)">ID</th>
+                <th onclick="sortTable(1)">Name</th>
+                <th onclick="sortTable(2)">SKU</th>
+                <th onclick="sortTable(3)">Price (USD)</th>
+                <th onclick="sortTable(4)">Description</th>
+                <th onclick="sortTable(5)">Category</th>
+                <th onclick="sortTable(6)">Flavor</th>
+                <th onclick="sortTable(7)">Size</th>
+                <th onclick="sortTable(8)">Created At</th>
+                <th onclick="sortTable(9)">Updated At</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -53,6 +103,8 @@
                     <td>${{ "%.2f" | format(product[3]) }}</td> <!-- Price -->
                     <td>{{ product[4] }}</td> <!-- Description -->
                     <td>{{ product[7] or 'No Category' }}</td> <!-- Category -->
+                    <td>{{ product[8] or 'No Flavor' }}</td> <!-- Flavor -->
+                    <td>{{ product[9] or 'No Size' }}</td> <!-- Size -->
                     <td>{{ product[5] }}</td> <!-- Created At -->
                     <td>{{ product[6] }}</td> <!-- Updated At -->
                     <td>
@@ -75,5 +127,63 @@
     <footer>
         <a href="https://yourwebsite.com">Visit our website</a>
     </footer>
+
+    <script>
+        function filterTable() {
+            const input = document.getElementById('filterInput');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('productsTable');
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < rows.length; i++) {
+                let match = false;
+                const cells = rows[i].getElementsByTagName('td');
+
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j]) {
+                        const cellValue = cells[j].textContent || cells[j].innerText;
+                        if (cellValue.toUpperCase().indexOf(filter) > -1) {
+                            match = true;
+                            break;
+                        }
+                    }
+                }
+                rows[i].style.display = match ? '' : 'none';
+            }
+        }
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById('productsTable');
+            const rows = Array.from(table.rows).slice(1); // Exclude header row
+            let isAscending = table.querySelectorAll('th')[columnIndex].classList.toggle('sort-asc');
+
+            // Remove previous sort indicators
+            Array.from(table.querySelectorAll('th')).forEach((th, idx) => {
+                if (idx !== columnIndex) {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                }
+            });
+
+            rows.sort((rowA, rowB) => {
+                const cellA = rowA.cells[columnIndex].innerText.trim().toUpperCase();
+                const cellB = rowB.cells[columnIndex].innerText.trim().toUpperCase();
+
+                if (!isNaN(cellA) && !isNaN(cellB)) {
+                    return isAscending ? cellA - cellB : cellB - cellA; // Numeric comparison
+                } else {
+                    return isAscending
+                        ? cellA.localeCompare(cellB) // String comparison
+                        : cellB.localeCompare(cellA);
+                }
+            });
+
+            // Rebuild the table
+            const tbody = table.getElementsByTagName('tbody')[0];
+            rows.forEach(row => tbody.appendChild(row));
+
+            // Update sort direction
+            table.querySelectorAll('th')[columnIndex].classList.toggle('sort-desc', !isAscending);
+        }
+    </script>
 </body>
 </html>

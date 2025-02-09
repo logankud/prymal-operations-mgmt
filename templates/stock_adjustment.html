@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Adjustment</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Stock Adjustment</h1>
+
+    <!-- Form to Adjust Stock -->
+    <form method="POST" action="{{ url_for('stock_adjustment', id=raw_material[0]) }}">
+        <!-- Raw Material Name -->
+        <label>Raw Material:</label> {{ raw_material[1] }}
+        <br><br>
+
+        <!-- Vendor Name -->
+        <label>Vendor:</label> {{ raw_material[2] }}
+        <br><br>
+
+        <!-- Raw Material Unit of Measure -->
+        <label>Unit of Measure:</label> {{ raw_material[3] }} ({{ raw_material[4] }}) <!-- e.g., Grams (g) -->
+        <br><br>
+
+        <!-- MOQ -->
+        <label>Minimum Order Quantity:</label> {{ raw_material[5] }} {{ raw_material[4] }}
+        <br><br>
+
+        <!-- Total Inventory -->
+        <label>Total Inventory:</label> {{ "%.2f" | format(raw_material[6]) }} {{ raw_material[4] }}
+        <br><br>
+
+        <!-- Reserved Inventory -->
+        <label>Reserved Inventory:</label> {{ "%.2f" | format(raw_material[7]) }} {{ raw_material[4] }}
+        <br><br>
+
+        <!-- Available Inventory -->
+        <label>Available Inventory:</label> {{ "%.2f" | format(raw_material[8]) }} {{ raw_material[4] }}
+        <br><br>
+
+        <!-- Select Adjustment Type -->
+        <label for="adjustment_type">Adjustment Type:</label>
+        <select id="adjustment_type" name="adjustment_type" required>
+            <option value="add">Add Inventory</option>
+            <option value="remove">Remove Inventory</option>
+        </select>
+        <br><br>
+
+        <!-- Adjustment Amount -->
+        <label for="adjustment_amount">Adjustment Amount ({{ raw_material[4] }}):</label>
+        <input type="number" id="adjustment_amount" name="adjustment_amount" step="0.01" required>
+        <br><br>
+
+        <!-- Adjustment Reason -->
+        <label for="adjustment_reason">Reason for Adjustment:</label>
+        <textarea id="adjustment_reason" name="adjustment_reason" required></textarea>
+        <br><br>
+
+        <!-- Submit Button -->
+        <button type="submit">Submit Adjustment</button>
+        <a href="{{ url_for('raw_materials') }}"><button type="button">Cancel</button></a>
+    </form>
+</body>
+</html>

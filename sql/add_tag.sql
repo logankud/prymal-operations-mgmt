@@ -1,0 +1,3 @@
+INSERT INTO tags (name) 
+VALUES (%s) 
+ON CONFLICT (name) DO NOTHING;

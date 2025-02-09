@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Raw Material</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css">
+</head>
+<body>
+    <h1>Edit Raw Material</h1>
+    <form method="POST" action="{{ url_for('edit_raw_material', id=raw_material[0]) }}">
+        <!-- Name -->
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" value="{{ raw_material[1] }}" required>
+        <br><br>
+
+        <!-- Vendor -->
+        <label for="vendor_id">Vendor:</label>
+        <select id="vendor_id" name="vendor_id" required>
+            {% for vendor in vendors %}
+                <option value="{{ vendor[0] }}" {% if vendor[0] == raw_material[2] %}selected{% endif %}>
+                    {{ vendor[1] }}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <!-- Unit of Measure -->
+        <label for="unit_of_measure_id">Unit of Measure:</label>
+        <select id="unit_of_measure_id" name="unit_of_measure_id" required>
+            {% for unit in unit_of_measure %}
+                <option value="{{ unit[0] }}" {% if unit[0] == raw_material[4] %}selected{% endif %}>
+                    {{ unit[1] }}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <!-- MOQ -->
+        <label for="moq">MOQ:</label>
+        <input type="number" id="moq" name="moq" step="0.01" value="{{ raw_material[6] }}" required>
+        <br><br>
+
+        <!-- Tags -->
+        <label for="tags">Tags:</label>
+        <input id="tags" name="tags">
+        <br><br>
+
+        <script>
+            // Initialize Tagify for the Tags input field
+            const tagInput = document.querySelector('#tags');
+            const tagify = new Tagify(tagInput, {
+                enforceWhitelist: false, // Allow both existing and new tags
+                whitelist: [
+                    {% for tag in tags %}
+                        "{{ tag.name }}",
+                    {% endfor %}
+                ],
+            });
+
+            // Preload existing tags for the raw material
+            const existingTags = {{ raw_material[7] | tojson }};
+            tagify.addTags(existingTags.map(tag => tag.value));
+
+            // Ensure serialized data is submitted
+            document.querySelector('form').addEventListener('submit', function (event) {
+                // Serialize tags into a JSON string
+                const tagsField = document.querySelector('#tags');
+                const tagsData = tagify.value; // Get Tagify data
+                tagsField.value = tagsData.map(tag => tag.value).join(','); // Serialize as CSV
+            });
+        </script>
+
+
+
+        <button type="submit">Save Changes</button>
+        <a href="{{ url_for('raw_materials') }}"><button type="button">Cancel</button></a>
+    </form>
+
+    <!-- <script>
+        // Initialize Tagify for the Tags input field
+        const tagInput = document.querySelector('#tags');
+        const tagify = new Tagify(tagInput, {
+            enforceWhitelist: false, // Allow both existing and new tags
+            whitelist: [
+                {% for tag in tags %}
+                    "{{ tag.name }}",
+                {% endfor %}
+            ],
+        });
+
+        // Preload existing tags for the raw material
+        const existingTags = {{ raw_material[7] | tojson }};
+        tagify.addTags(existingTags.map(tag => tag.value));
+    </script> -->
+
+    
+</body>
+</html>

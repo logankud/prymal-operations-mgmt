@@ -45,6 +45,33 @@
         </select>
         <br><br>
 
+        <!-- Flavor Dropdown -->
+        <label for="flavor_id">Flavor (Optional):</label>
+        <br>
+        <select id="flavor_id" name="flavor_id">
+            <option value="">None</option>
+            {% for flavor in flavors %}
+                <option value="{{ flavor[0] }}" {% if flavor[0] == product[6] %}selected{% endif %}>
+                    {{ flavor[1] }}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <!-- Size Dropdown -->
+        <label for="size_id">Size (Optional):</label>
+        <br>
+        <select id="size_id" name="size_id">
+            <option value="">None</option>
+            {% for size in sizes %}
+                <option value="{{ size[0] }}" {% if size[0] == product[7] %}selected{% endif %}>
+                    {{ size[1] }}{% if size[2] %} ({{ size[2] }}g){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+
         <!-- Submit Button -->
         <button type="submit">Save Changes</button>
         <a href="{{ url_for('index') }}">Cancel</a>

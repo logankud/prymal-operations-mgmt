@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Manufacturing Order</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <a href="{{ url_for('home') }}" id="home-icon" style="text-decoration: none;">
+        <div style="position: relative; display: inline-block; text-align: center; font-size: 24px; line-height: 1;">
+            <span style="font-size: 16px; position: absolute; top: 0; left: 50%; transform: translateX(-50%);">
+                Home
+            </span>
+            <span style="font-size: 24px; display: block; margin-top: 20px;">&#8962;</span>
+        </div>
+    </a>
+
+    <h1>Add Manufacturing Order</h1>
+
+    <!-- Form to Add Manufacturing Order -->
+    <form method="POST" action="{{ url_for('add_manufacturing_order') }}">
+        
+        <!-- Product Dropdown -->
+        <label for="product_id">Product:</label>
+        <select id="product_id" name="product_id" required>
+            <option value="" data-weight_g="0">-- Select Product --</option>
+            {% for product in products %}
+                <option value="{{ product[0] }}" data-weight_g="{{ product[2] }}">{{ product[1] }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <!-- Grams Per Unit -->
+        <label>Grams Per Unit:</label>
+        <span id="grams_per_unit">--</span> g
+        <input type="hidden" id="weight_g" name="weight_g" value="0"> <!-- Hidden field to store grams per unit -->
+        <br><br>
+
+        <!-- Units to Produce -->
+        <label for="units_to_produce">Units to Produce:</label>
+        <input type="number" id="units_to_produce" name="units_to_produce" min="1" required>
+        <br><br>
+
+        <!-- Planned Start Date -->
+        <label for="planned_start_date">Planned Start Date:</label>
+        <input type="date" id="planned_start_date" name="planned_start_date" required>
+        <br><br>
+
+        <!-- Submit Button -->
+        <button type="submit">Add Manufacturing Order</button>
+        <a href="{{ url_for('manufacturing_orders') }}">
+            <button type="button">Cancel</button>
+        </a>
+    </form>
+
+    <br>
+
+    <!-- Raw Materials Table -->
+    <h2>Required Raw Materials</h2>
+    <table border="1" cellpadding="5" cellspacing="0" id="raw_materials_table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Raw Material</th>
+                <th>Required Quantity</th>
+                <th>Unit</th>
+                <th>Total Inventory</th>
+                <th>Reserved Inventory</th>
+                <th>Available Inventory</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+
+    <script>
+        console.log("Script loaded.");
+    
+        const productDropdown = document.getElementById('product_id');
+        const gramsPerUnitDisplay = document.getElementById('grams_per_unit');
+        const gramsPerUnitInput = document.getElementById('weight_g');
+        const unitsToProduceInput = document.getElementById('units_to_produce');
+        const rawMaterialsTable = document.getElementById('raw_materials_table');
+        const tableBody = rawMaterialsTable.querySelector('tbody');
+
+        // Fetch and display recipe and raw materials
+        function fetchAndDisplayRecipe(productId, unitsToProduce) {
+            console.log("Product ID:", productId);
+            console.log("Units to Produce:", unitsToProduce);
+
+            if (!productId) {
+                console.log("Product ID is missing.");
+                rawMaterialsTable.style.display = 'none';
+                return;
+            }
+
+            // Optionally set a default unitsToProduce if not provided
+            if (!unitsToProduce) {
+                unitsToProduce = 1; // or any default value you consider appropriate
+            }
+
+            $.ajax({
+                url: "{{ url_for('fetch_recipe') }}",
+                method: "GET",
+                data: { product_id: productId },
+                success: function (response) {
+                    tableBody.innerHTML = ''; // Clear the table body
+                    response.forEach(material => {
+                        // Calculate the required quantity based on the units to produce.
+                        const requiredQuantity = parseFloat(material.quantity * unitsToProduce).toFixed(2);
+
+                        // Convert available inventory to a float for comparison
+                        const availableInventory = parseFloat(material.available_inventory);
+
+                        // Decide which class to use: sufficient if available is equal to or greater than required, otherwise insufficient.
+                        const cssClass = (availableInventory >= requiredQuantity) ? "sufficient" : "insufficient";
+
+                        // Build the row. Apply cssClass to the Raw Material, Required Quantity, and Available Inventory cells.
+                        const row = `<tr>
+                            <td class="${cssClass}">${material.raw_material_name}</td>
+                            <td class="${cssClass}">${requiredQuantity}</td>
+                            <td>${material.unit}</td>
+                            <td>${material.total_inventory}</td>
+                            <td>${material.reserved_inventory}</td>
+                            <td class="${cssClass}">${material.available_inventory}</td>
+                        </tr>`;
+                        tableBody.insertAdjacentHTML('beforeend', row);
+                    });
+
+
+
+                    rawMaterialsTable.style.display = 'table';
+                },
+                error: function () {
+                    console.error("Failed to fetch recipe");
+                    rawMaterialsTable.style.display = 'none';
+                }
+            });
+        }
+
+
+        // Event listener for product selection
+        productDropdown.addEventListener('change', function () {
+            const selectedOption = productDropdown.options[productDropdown.selectedIndex];
+            console.log("Selected Option:", selectedOption)
+            const weightG = selectedOption.getAttribute('data-weight_g');
+            console.log("Weight G:", weightG)
+            gramsPerUnitDisplay.textContent = weightG; // Update grams per unit display
+            gramsPerUnitInput.value = weightG; // Update hidden input field
+
+            const productId = productDropdown.value;
+            const unitsToProduce = unitsToProduceInput.value || 0;
+            fetchAndDisplayRecipe(productId, unitsToProduce);
+        });
+
+        // Event listener for units to produce input
+        unitsToProduceInput.addEventListener('input', function () {
+            const productId = productDropdown.value;
+            const unitsToProduce = unitsToProduceInput.value;
+            fetchAndDisplayRecipe(productId, unitsToProduce);
+        });
+    </script>
+</body>
+</html>

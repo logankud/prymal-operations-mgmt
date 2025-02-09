@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Recipe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Add Recipe</h1>
+
+    <form method="POST" action="{{ url_for('add_recipe') }}">
+        <!-- Select Product -->
+        <label for="product_id">Product:</label>
+        <select id="product_id" name="product_id" required>
+            <option value="">-- Select a Product --</option>
+            {% for product in products %}
+                <option value="{{ product[0] }}">{{ product[1] }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+
+        <!-- Recipe Table -->
+        <table id="recipeTable" border="1" cellpadding="5" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Raw Material</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Placeholder for dynamic rows -->
+                <tr>
+                    <td>
+                        <select name="raw_material_id[]" required>
+                            <option value="">-- Select Raw Material --</option>
+                            {% for raw_material in raw_materials %}
+                                <option value="{{ raw_material[0] }}">{{ raw_material[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="quantity[]" step="0.01" min="0.01" required>
+                    </td>
+                    <td>
+                        <!-- This will display the unit dynamically using JavaScript -->
+                        <span class="unit-display"></span>
+                    </td>
+                    <td>
+                        <button type="button" class="remove-row">Remove</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Add Row Button -->
+        <button type="button" id="addRow">Add Row</button>
+        <br><br>
+
+        <!-- Submit Button -->
+        <button type="submit">Save Recipe</button>
+        <a href="{{ url_for('recipes') }}"><button type="button">Cancel</button></a>
+    </form>
+
+    <script>
+        // Add a new row to the recipe table
+        document.getElementById('addRow').addEventListener('click', function() {
+            const table = document.getElementById('recipeTable').querySelector('tbody');
+            const newRow = `
+                <tr>
+                    <td>
+                        <select name="raw_material_id[]" required>
+                            <option value="">-- Select Raw Material --</option>
+                            {% for raw_material in raw_materials %}
+                                <option value="{{ raw_material[0] }}">{{ raw_material[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="quantity[]" step="0.01" min="0.01" required>
+                    </td>
+                    <td>
+                        <span class="unit-display"></span>
+                    </td>
+                    <td>
+                        <button type="button" class="remove-row">Remove</button>
+                    </td>
+                </tr>
+            `;
+            table.insertAdjacentHTML('beforeend', newRow);
+        });
+
+        // Remove a row from the recipe table
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('remove-row')) {
+                event.target.closest('tr').remove();
+            }
+        });
+
+        // Update unit dynamically when raw material is selected
+        document.addEventListener('change', function(event) {
+            if (event.target.name === 'raw_material_id[]') {
+                const selectedOption = event.target.options[event.target.selectedIndex];
+                const unitCell = event.target.closest('tr').querySelector('.unit-display');
+
+                // Assume unit is stored as a data attribute in the options
+                unitCell.textContent = selectedOption.dataset.unit || ''; // Replace with actual unit
+            }
+        });
+    </script>
+</body>
+</html>
+

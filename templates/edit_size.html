@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Size</title>
+</head>
+<body>
+    <h1>Edit Size</h1>
+    <form method="POST" action="{{ url_for('edit_size', id=size[0]) }}">
+        <label for="name">Size Name:</label>
+        <br>
+        <input type="text" id="name" name="name" value="{{ size[1] }}" required>
+        <br><br>
+        <label for="weight_g">Weight (Optional, in grams):</label>
+        <br>
+        <input type="number" id="weight_g" name="weight_g" step="1" min="0" value="{{ size[2] }}">
+        <br><br>
+        <button type="submit">Save Changes</button>
+        <a href="{{ url_for('list_sizes') }}">Cancel</a>
+    </form>
+</body>
+</html>

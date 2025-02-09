@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .block {
+            background-color: #ffffff;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .block:hover {
+            background-color: #4caf50;
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Prymal Ops</h1>
+        <div class="container">
+            <!-- Products Page Block -->
+                <a href="https://prymal-sku-mgmt-logankud.replit.app/" target="_blank">
+                <div class="block">SKU Insights Dashboard</div>
+            </a>
+        </div>
+        <div class="container">
+            <!-- Products Page Block -->
+            <a href="{{ url_for('products') }}" target="_blank">
+                <div class="block">Production Management</div>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

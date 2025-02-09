@@ -3,10 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Categories</title>
+    <title>Production Management Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
 </head>
 <body>
-    <h1>Categories</h1>
+
+    <!-- Home Icon -->
+    <a href="{{ url_for('home') }}" id="home-icon">&#8962;</a> <!-- Unicode for home icon -->
+
+    <h1>Production Management Dashboard</h1>
+
+    <!-- Tabs for Navigation -->
+    <div style="display: flex; gap: 20px; border-bottom: 1px solid #ccc; padding: 10px 0;">
+        <a href="{{ url_for('manufacturing_orders') }}" 
+               class="{{ 'active' if request.path == url_for('manufacturing_orders') else '' }}">Manufacturing Orders</a>
+        <a href="{{ url_for('products') }}" 
+           class="{{ 'active' if request.path == url_for('products') else '' }}">Products</a>
+        <a href="{{ url_for('categories') }}" 
+           class="{{ 'active' if request.path == url_for('categories') else '' }}">Categories</a>
+        <a href="{{ url_for('flavors') }}" 
+           class="{{ 'active' if request.path == url_for('flavors') else '' }}">Flavors</a>
+        <a href="{{ url_for('sizes') }}" 
+           class="{{ 'active' if request.path == url_for('sizes') else '' }}">Sizes</a>
+        <a href="{{ url_for('vendors') }}" 
+               class="{{ 'active' if request.path == url_for('vendors') else '' }}">Vendors</a>
+        <a href="{{ url_for('raw_materials') }}" 
+               class="{{ 'active' if request.path == url_for('raw_materials') else '' }}">Raw Materials</a>
+        <a href="{{ url_for('recipes') }}" 
+               class="{{ 'active' if request.path == url_for('raw_materials') else '' }}">Recipes</a>
+    <br><br>
 
     <!-- Button to add a new category -->
     <a href="{{ url_for('add_category') }}">
@@ -47,6 +73,6 @@
 
     <!-- Back to Home -->
     <br>
-    <a href="{{ url_for('index') }}">Back to Home</a>
+    <a href="{{ url_for('products') }}">Back to Home</a>
 </body>
 </html>

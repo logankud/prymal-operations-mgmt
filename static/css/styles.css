@@ -1,0 +1,34 @@
+a {
+    text-decoration: none;
+    padding: 5px;
+    color: black;
+}
+
+a.active {
+    font-weight: bold;
+    color: white;
+    background-color: #4caf50;
+    border-radius: 5px;
+}
+
+#home-icon {
+    font-size: 24px;
+    color: black;
+    margin-right: 20px;
+    text-decoration: none;
+}
+
+#home-icon:hover {
+    color: #4caf50;
+    cursor: pointer;
+}
+
+.sufficient {
+  background-color: #d4edda; /* light green */
+  color: #155724;           /* dark green text */
+}
+
+.insufficient {
+  background-color: #f8d7da; /* light red/pink */
+  color: #721c24;           /* dark red text */
+}
