@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Product Snapshot</title>
+
+    <!-- DataTables, jQuery & jQuery UI -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7F2E9;
+            color: #2D3B32;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h3 {
+            text-align: center;
+            color: #2D3B32;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #FFFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #8A9A5B;
+            border-radius: 5px;
+            background-color: #FFFDF5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+        }
+
+        table, th, td {
+            border: 1px solid #E6E6E6;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 10px;
+        }
+
+        th {
+            background: #8A9A5B;
+            color: white;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 10px;
+            border: 1px solid #8A9A5B;
+            background-color: #E5E5E5;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #D0D0D0;
+        }
+
+        .primary-btn {
+            background: #8A9A5B;
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background: #728A50;
+        }
+
+        .no-recipes {
+            color: #E74C3C;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .create-recipe-btn {
+            background: #E74C3C;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .create-recipe-btn:hover {
+            background: #C0392B;
+        }
+    </style>
+
+</head>
+<body>
+
+    <h1>Create Product Snapshot</h1>
+
+    <div class="container">
+        <!-- Step 1: Confirm Product -->
+        <div id="step1">
+            <h3>Step 1: Confirm Product</h3>
+            <table>
+                <tr><td><strong>ID</strong></td><td id="product_id">{{ product[0] }}</td></tr>
+                <tr><td><strong>Name</strong></td><td id="product_name">{{ product[1] }}</td></tr>
+                <tr><td><strong>SKU</strong></td><td id="product_sku">{{ product[2] }}</td></tr>
+                <tr><td><strong>Price</strong></td><td id="product_price">${{ "%.2f" | format(product[3]) }}</td></tr>
+                <tr><td><strong>Description</strong></td><td id="product_description">{{ product[4] or 'No description' }}</td></tr>
+                <tr><td><strong>Category</strong></td><td id="product_category">{{ product[5] or 'No Category' }}</td></tr>
+                <tr><td><strong>Flavor</strong></td><td id="product_flavor">{{ product[6] or 'No Flavor' }}</td></tr>
+                <tr><td><strong>Size</strong></td><td id="product_size">{{ product[7] or 'No Size' }}</td></tr>
+            </table>
+
+            <div class="button-container">
+                <button class="primary-btn" id="nextStep1">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Select Recipe Version -->
+        <div id="step2" style="display:none;">
+            <h3>Step 2: Select Recipe Version</h3>
+            <p>Select a recipe version for this product:</p>
+            
+            {% if recipes %}
+                <form id="selectRecipeForm">
+                    {% for recipe in recipes %}
+                        <label>
+                            <input type="radio" name="recipe_version" value="{{ recipe[1] }}"> 
+                            Version {{ recipe[1] }} (Created: {{ recipe[2] }})
+                        </label><br>
+                    {% endfor %}
+                </form>
+
+                <h4>Recipe Details</h4>
+                <table id="recipeTable" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Raw Material</th>
+                            <th>Vendor</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <div class="button-container">
+                    <button id="prevStep2">Back</button>
+                    <button class="primary-btn" id="nextStep2" disabled>Next</button>
+                </div>
+            {% else %}
+                <p class="no-recipes">No recipe versions exist for this product.</p>
+                <button class="create-recipe-btn" onclick="redirectToCreateRecipe()">Create Recipe Version</button>
+            {% endif %}
+        </div>
+
+        <!-- Step 3: Review & Confirm -->
+        <div id="step3" style="display:none;">
+            <h3>Step 3: Review & Confirm</h3>
+            <p>Confirm your snapshot details:</p>
+
+            <h4>Product Details</h4>
+            <table>
+                <tr><td><strong>ID</strong></td><td id="confirmProductID"></td></tr>
+                <tr><td><strong>Name</strong></td><td id="confirmProductName"></td></tr>
+                <tr><td><strong>SKU</strong></td><td id="confirmProductSKU"></td></tr>
+            </table>
+
+            <h4>Recipe Materials:</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Raw Material</th>
+                        <th>Vendor</th>
+                        <th>Quantity</th>
+                        <th>Unit</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewRecipeTable"></tbody>
+            </table>
+
+            <div class="button-container">
+                <button id="prevStep3">Back</button>
+                <button class="primary-btn" id="createSnapshot">Create Snapshot</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function redirectToCreateRecipe() {
+            let productId = document.getElementById("product_id").innerText;
+            window.location.href = "{{ url_for('create_recipe_version', product_id=0) }}".replace("0", productId);
+        }
+
+        $(document).ready(function() {
+            $("#nextStep1").click(function() {
+                $("#step1").hide();
+                $("#step2").show();
+            });
+
+            $("#prevStep2").click(function() {
+                $("#step2").hide();
+                $("#step1").show();
+            });
+
+            $("#nextStep2").click(function() {
+                $("#step2").hide();
+                $("#step3").show();
+            });
+
+            $("#prevStep3").click(function() {
+                $("#step3").hide();
+                $("#step2").show();
+            });
+        });
+    </script>
+
+</body>
+</html>

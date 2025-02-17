@@ -4,163 +4,230 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Manufacturing Order</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-</head>
-<body>
-    <!-- Navigation -->
-    <a href="{{ url_for('home') }}" id="home-icon" style="text-decoration: none;">
-        <div style="position: relative; display: inline-block; text-align: center; font-size: 24px; line-height: 1;">
-            <span style="font-size: 16px; position: absolute; top: 0; left: 50%; transform: translateX(-50%);">
-                Home
-            </span>
-            <span style="font-size: 24px; display: block; margin-top: 20px;">&#8962;</span>
-        </div>
-    </a>
-
-    <h1>Add Manufacturing Order</h1>
-
-    <!-- Form to Add Manufacturing Order -->
-    <form method="POST" action="{{ url_for('add_manufacturing_order') }}">
-        
-        <!-- Product Dropdown -->
-        <label for="product_id">Product:</label>
-        <select id="product_id" name="product_id" required>
-            <option value="" data-weight_g="0">-- Select Product --</option>
-            {% for product in products %}
-                <option value="{{ product[0] }}" data-weight_g="{{ product[2] }}">{{ product[1] }}</option>
-            {% endfor %}
-        </select>
-        <br><br>
-
-        <!-- Grams Per Unit -->
-        <label>Grams Per Unit:</label>
-        <span id="grams_per_unit">--</span> g
-        <input type="hidden" id="weight_g" name="weight_g" value="0"> <!-- Hidden field to store grams per unit -->
-        <br><br>
-
-        <!-- Units to Produce -->
-        <label for="units_to_produce">Units to Produce:</label>
-        <input type="number" id="units_to_produce" name="units_to_produce" min="1" required>
-        <br><br>
-
-        <!-- Planned Start Date -->
-        <label for="planned_start_date">Planned Start Date:</label>
-        <input type="date" id="planned_start_date" name="planned_start_date" required>
-        <br><br>
-
-        <!-- Submit Button -->
-        <button type="submit">Add Manufacturing Order</button>
-        <a href="{{ url_for('manufacturing_orders') }}">
-            <button type="button">Cancel</button>
-        </a>
-    </form>
-
-    <br>
-
-    <!-- Raw Materials Table -->
-    <h2>Required Raw Materials</h2>
-    <table border="1" cellpadding="5" cellspacing="0" id="raw_materials_table" style="display: none;">
-        <thead>
-            <tr>
-                <th>Raw Material</th>
-                <th>Required Quantity</th>
-                <th>Unit</th>
-                <th>Total Inventory</th>
-                <th>Reserved Inventory</th>
-                <th>Available Inventory</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-
-    <script>
-        console.log("Script loaded.");
     
-        const productDropdown = document.getElementById('product_id');
-        const gramsPerUnitDisplay = document.getElementById('grams_per_unit');
-        const gramsPerUnitInput = document.getElementById('weight_g');
-        const unitsToProduceInput = document.getElementById('units_to_produce');
-        const rawMaterialsTable = document.getElementById('raw_materials_table');
-        const tableBody = rawMaterialsTable.querySelector('tbody');
+    <!-- DataTables, jQuery & jQuery UI for autocomplete -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
-        // Fetch and display recipe and raw materials
-        function fetchAndDisplayRecipe(productId, unitsToProduce) {
-            console.log("Product ID:", productId);
-            console.log("Units to Produce:", unitsToProduce);
-
-            if (!productId) {
-                console.log("Product ID is missing.");
-                rawMaterialsTable.style.display = 'none';
-                return;
-            }
-
-            // Optionally set a default unitsToProduce if not provided
-            if (!unitsToProduce) {
-                unitsToProduce = 1; // or any default value you consider appropriate
-            }
-
-            $.ajax({
-                url: "{{ url_for('fetch_recipe') }}",
-                method: "GET",
-                data: { product_id: productId },
-                success: function (response) {
-                    tableBody.innerHTML = ''; // Clear the table body
-                    response.forEach(material => {
-                        // Calculate the required quantity based on the units to produce.
-                        const requiredQuantity = parseFloat(material.quantity * unitsToProduce).toFixed(2);
-
-                        // Convert available inventory to a float for comparison
-                        const availableInventory = parseFloat(material.available_inventory);
-
-                        // Decide which class to use: sufficient if available is equal to or greater than required, otherwise insufficient.
-                        const cssClass = (availableInventory >= requiredQuantity) ? "sufficient" : "insufficient";
-
-                        // Build the row. Apply cssClass to the Raw Material, Required Quantity, and Available Inventory cells.
-                        const row = `<tr>
-                            <td class="${cssClass}">${material.raw_material_name}</td>
-                            <td class="${cssClass}">${requiredQuantity}</td>
-                            <td>${material.unit}</td>
-                            <td>${material.total_inventory}</td>
-                            <td>${material.reserved_inventory}</td>
-                            <td class="${cssClass}">${material.available_inventory}</td>
-                        </tr>`;
-                        tableBody.insertAdjacentHTML('beforeend', row);
-                    });
-
-
-
-                    rawMaterialsTable.style.display = 'table';
-                },
-                error: function () {
-                    console.error("Failed to fetch recipe");
-                    rawMaterialsTable.style.display = 'none';
-                }
-            });
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7F2E9;
+            color: #2D3B32;
+            margin: 0;
+            padding: 20px;
         }
 
+        h1 {
+            text-align: center;
+            color: #2D3B32;
+            font-weight: 600;
+        }
 
-        // Event listener for product selection
-        productDropdown.addEventListener('change', function () {
-            const selectedOption = productDropdown.options[productDropdown.selectedIndex];
-            console.log("Selected Option:", selectedOption)
-            const weightG = selectedOption.getAttribute('data-weight_g');
-            console.log("Weight G:", weightG)
-            gramsPerUnitDisplay.textContent = weightG; // Update grams per unit display
-            gramsPerUnitInput.value = weightG; // Update hidden input field
+        form {
+            max-width: 600px;
+            margin: auto;
+            background: #FFFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-            const productId = productDropdown.value;
-            const unitsToProduce = unitsToProduceInput.value || 0;
-            fetchAndDisplayRecipe(productId, unitsToProduce);
-        });
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
 
-        // Event listener for units to produce input
-        unitsToProduceInput.addEventListener('input', function () {
-            const productId = productDropdown.value;
-            const unitsToProduce = unitsToProduceInput.value;
-            fetchAndDisplayRecipe(productId, unitsToProduce);
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #8A9A5B;
+            border-radius: 5px;
+            background-color: #FFFDF5;
+        }
+
+        .product-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+            padding: 10px;
+            background: #8A9A5B;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .product-display span {
+            flex-grow: 1;
+        }
+
+        .remove-product {
+            background: #E74C3C;
+            border: none;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .remove-product:hover {
+            background: #C0392B;
+        }
+
+        .no-snapshots {
+            color: #E74C3C;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .create-snapshot-btn {
+            background: #8A9A5B;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .create-snapshot-btn:hover {
+            background: #728A50;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal iframe {
+            flex-grow: 1;
+            border: none;
+        }
+
+        .close-modal {
+            background: #E74C3C;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            let selectedProductId = null;
+
+            $("#product_search").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: "{{ url_for('search_products') }}",
+                        method: "GET",
+                        data: { query: request.term },
+                        success: function (data) {
+                            response(data.map(item => ({
+                                label: item.name,
+                                value: item.name,
+                                id: item.id
+                            })));
+                        }
+                    });
+                },
+                select: function (event, ui) {
+                    selectedProductId = ui.item.id;
+                    $("#product_id").val(ui.item.id);
+                    $("#product_search").hide();
+                    $("#selected_product").html(`
+                        <div class="product-display">
+                            <span>${ui.item.label}</span>
+                            <button type="button" class="remove-product">×</button>
+                        </div>
+                    `);
+
+                    $(".remove-product").click(function () {
+                        $("#product_id").val("");
+                        $("#product_search").val("").show();
+                        $("#selected_product").empty();
+                        $("#snapshot_section").hide();
+                    });
+
+                    $("#snapshot_section").show();
+                    fetchProductSnapshots(ui.item.id);
+                }
+            });
+
+            function fetchProductSnapshots(productId) {
+                $.ajax({
+                    url: "{{ url_for('fetch_product_snapshots') }}",
+                    method: "GET",
+                    data: { product_id: productId },
+                    success: function (snapshots) {
+                        if (snapshots.length === 0) {
+                            $("#snapshot_container").html(`
+                                <div class="no-snapshots">No snapshots available.</div>
+                                <button type="button" class="create-snapshot-btn">Create Snapshot</button>
+                            `);
+                            $(".create-snapshot-btn").click(function () {
+                                $("#snapshotModal").show();
+                                $("#snapshotFrame").attr("src", "{{ url_for('create_snapshot_form', product_id=0) }}".replace("0", productId));
+                            });
+                        }
+                    }
+                });
+            }
+
+
+            $(".close-modal").click(function () {
+                $("#snapshotModal").hide();
+            });
         });
     </script>
+</head>
+<body>
+    <h1>Add Manufacturing Order</h1>
+    <form method="POST" action="{{ url_for('add_manufacturing_order') }}">
+        <label for="product_search">Search Product:</label>
+        <input type="text" id="product_search" placeholder="Type to search...">
+        <input type="hidden" id="product_id" name="product_id">
+        <div id="selected_product"></div>
+
+        <div id="snapshot_section" style="display: none;">
+            <label for="snapshot_search">Select Product Snapshot:</label>
+            <div id="snapshot_container"></div>
+        </div>
+
+    </form>
+    <div id="snapshotModal" class="modal">
+        <div class="modal-content">
+            <iframe id="snapshotFrame"></iframe>
+            <button class="close-modal">Close</button>
+        </div>
+    </div>
 </body>
 </html>

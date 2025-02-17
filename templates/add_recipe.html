@@ -21,6 +21,13 @@
         </select>
         <br><br>
 
+        <!-- Select Recipe Version -->
+        <label for="recipe_version">Recipe Version:</label>
+        <select id="recipe_version" name="recipe_version" disabled>
+            <option value="">-- Select Version --</option>
+        </select>
+        <br><br>
+
         <!-- Recipe Table -->
         <table id="recipeTable" border="1" cellpadding="5" cellspacing="0">
             <thead>
@@ -28,32 +35,11 @@
                     <th>Raw Material</th>
                     <th>Quantity</th>
                     <th>Unit</th>
+                    <th>Vendor</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                <!-- Placeholder for dynamic rows -->
-                <tr>
-                    <td>
-                        <select name="raw_material_id[]" required>
-                            <option value="">-- Select Raw Material --</option>
-                            {% for raw_material in raw_materials %}
-                                <option value="{{ raw_material[0] }}">{{ raw_material[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <input type="number" name="quantity[]" step="0.01" min="0.01" required>
-                    </td>
-                    <td>
-                        <!-- This will display the unit dynamically using JavaScript -->
-                        <span class="unit-display"></span>
-                    </td>
-                    <td>
-                        <button type="button" class="remove-row">Remove</button>
-                    </td>
-                </tr>
-            </tbody>
+            <tbody></tbody>
         </table>
 
         <!-- Add Row Button -->
@@ -61,56 +47,144 @@
         <br><br>
 
         <!-- Submit Button -->
-        <button type="submit">Save Recipe</button>
+        <button type="submit" id="saveRecipe" disabled>Save Recipe</button>
         <a href="{{ url_for('recipes') }}"><button type="button">Cancel</button></a>
     </form>
 
+    <!-- Add New Raw Material Modal -->
+    <div id="addRawMaterialModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc;">
+        <iframe id="rawMaterialFrame" src="{{ url_for('add_raw_material') }}" width="500" height="500" style="border: none;"></iframe>
+        <br><br>
+        <button type="button" id="closeRawMaterialModal">Close</button>
+    </div>
+
     <script>
-        // Add a new row to the recipe table
-        document.getElementById('addRow').addEventListener('click', function() {
-            const table = document.getElementById('recipeTable').querySelector('tbody');
-            const newRow = `
-                <tr>
+        $(document).ready(function () {
+            let selectedRawMaterials = new Set();  // Track selected raw materials
+
+            // Fetch recipe versions when a product is selected
+            $("#product_id").change(function () {
+                let productId = $(this).val();
+                $("#recipe_version").empty().append('<option value="">-- Select Version --</option>').prop('disabled', true);
+                $("#recipeTable tbody").empty();
+                $("#saveRecipe").prop('disabled', true);
+
+                if (!productId) return;
+
+                $.ajax({
+                    url: "{{ url_for('fetch_recipe_versions') }}",
+                    method: "GET",
+                    data: { product_id: productId },
+                    success: function (response) {
+                        let hasVersions = false;
+                        response.forEach(version => {
+                            let activeText = version.active ? " (Active)" : "";
+                            let option = `<option value="${version.id}" ${version.active ? "selected" : ""}>Version ${version.version}${activeText}</option>`;
+                            $("#recipe_version").append(option);
+                            hasVersions = true;
+                        });
+
+                        $("#recipe_version").append('<option value="new">+ Add New Recipe Version</option>');
+                        $("#recipe_version").prop('disabled', false);
+
+                        if (hasVersions) {
+                            $("#recipe_version").change();
+                        }
+                    },
+                    error: function () {
+                        console.error("Failed to fetch recipe versions.");
+                    }
+                });
+            });
+
+            // Fetch recipe details when a version is selected
+            $("#recipe_version").change(function () {
+                let recipeId = $(this).val();
+                $("#recipeTable tbody").empty();
+                selectedRawMaterials.clear();
+
+                if (recipeId === "new") {
+                    $("#addRow").show();
+                    $("#saveRecipe").prop('disabled', false);
+                    return;
+                }
+
+                $("#addRow").hide();
+                $("#saveRecipe").prop('disabled', true);
+
+                if (!recipeId) return;
+
+                $.ajax({
+                    url: "{{ url_for('fetch_recipe_details') }}",
+                    method: "GET",
+                    data: { recipe_id: recipeId },
+                    success: function (response) {
+                        response.forEach(material => {
+                            let row = `<tr>
+                                <td>${material.raw_material_name}</td>
+                                <td>${material.quantity}</td>
+                                <td>${material.unit}</td>
+                                <td>${material.vendor}</td>
+                                <td>-</td>
+                            </tr>`;
+                            $("#recipeTable tbody").append(row);
+                        });
+                    },
+                    error: function () {
+                        console.error("Failed to fetch recipe details.");
+                    }
+                });
+            });
+
+            // Add new row dynamically
+            $("#addRow").click(function () {
+                let row = `<tr>
                     <td>
-                        <select name="raw_material_id[]" required>
+                        <select name="raw_material_id[]" class="raw-material-dropdown" required>
                             <option value="">-- Select Raw Material --</option>
                             {% for raw_material in raw_materials %}
-                                <option value="{{ raw_material[0] }}">{{ raw_material[1] }}</option>
+                                <option value="{{ raw_material[0] }}" data-unit="{{ raw_material[3] }}" data-vendor="{{ raw_material[2] }}">
+                                    {{ raw_material[1] }}
+                                </option>
                             {% endfor %}
                         </select>
                     </td>
                     <td>
                         <input type="number" name="quantity[]" step="0.01" min="0.01" required>
                     </td>
-                    <td>
-                        <span class="unit-display"></span>
-                    </td>
+                    <td class="unit-display">N/A</td>
+                    <td class="vendor-display">N/A</td>
                     <td>
                         <button type="button" class="remove-row">Remove</button>
                     </td>
-                </tr>
-            `;
-            table.insertAdjacentHTML('beforeend', newRow);
-        });
+                </tr>`;
+                $("#recipeTable tbody").append(row);
+            });
 
-        // Remove a row from the recipe table
-        document.addEventListener('click', function(event) {
-            if (event.target.classList.contains('remove-row')) {
-                event.target.closest('tr').remove();
-            }
-        });
+            // Remove a row
+            $(document).on("click", ".remove-row", function () {
+                let rawMaterialId = $(this).closest("tr").find(".raw-material-dropdown").val();
+                selectedRawMaterials.delete(rawMaterialId); // Remove from tracking set
+                $(this).closest("tr").remove();
+            });
 
-        // Update unit dynamically when raw material is selected
-        document.addEventListener('change', function(event) {
-            if (event.target.name === 'raw_material_id[]') {
-                const selectedOption = event.target.options[event.target.selectedIndex];
-                const unitCell = event.target.closest('tr').querySelector('.unit-display');
+            // Prevent duplicate raw materials
+            $(document).on("change", ".raw-material-dropdown", function () {
+                let selectedId = $(this).val();
+                if (selectedRawMaterials.has(selectedId)) {
+                    alert("This raw material is already selected!");
+                    $(this).val(""); // Reset dropdown
+                    return;
+                }
+                selectedRawMaterials.add(selectedId);
 
-                // Assume unit is stored as a data attribute in the options
-                unitCell.textContent = selectedOption.dataset.unit || ''; // Replace with actual unit
-            }
+                // Update unit and vendor display
+                let unit = $(this).find(":selected").data("unit") || "N/A";
+                let vendor = $(this).find(":selected").data("vendor") || "N/A";
+                $(this).closest("tr").find(".unit-display").text(unit);
+                $(this).closest("tr").find(".vendor-display").text(vendor);
+            });
         });
     </script>
 </body>
 </html>
-

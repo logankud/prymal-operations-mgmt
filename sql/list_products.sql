@@ -1,1 +1,1 @@
-SELECT id, name FROM products;
+SELECT id, name FROM products ORDER BY name;

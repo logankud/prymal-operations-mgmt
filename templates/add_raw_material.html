@@ -7,21 +7,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
-
-    
-
 <body>
     <h1>Add Raw Material</h1>
 
     <!-- Add Raw Material Form -->
-    <form method="POST" action="{{ url_for('add_raw_material') }}">
-        <!-- Raw Material Name -->
+    <form id="addRawMaterialForm">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" required>
         <br><br>
 
-        <!-- Vendor Dropdown -->
         <label for="vendor_id">Vendor:</label>
         <select id="vendor_id" name="vendor_id" required>
             <option value="">-- Select Vendor --</option>
@@ -29,9 +25,9 @@
                 <option value="{{ vendor[0] }}">{{ vendor[1] }}</option>
             {% endfor %}
         </select>
+        <button type="button" id="openAddVendorModal">+ Add Vendor</button>
         <br><br>
 
-        <!-- Unit of Measure Dropdown -->
         <label for="unit_of_measure_id">Unit of Measure:</label>
         <select id="unit_of_measure_id" name="unit_of_measure_id" required>
             <option value="">-- Select Unit of Measure --</option>
@@ -41,39 +37,179 @@
         </select>
         <br><br>
 
-        <!-- Minimum Order Quantity (MOQ) -->
         <label for="moq">MOQ (Minimum Order Quantity):</label>
         <input type="number" id="moq" name="moq" min="0" step="0.01" required>
         <br><br>
 
-        <!-- Tags -->
         <label for="tags">Tags:</label>
-        <input id="tags" name="tags" value="{{ raw_material.tags | join(', ') if raw_material else '' }}" placeholder="Add tags..." required>
+        <input id="tags" name="tags" placeholder="Add tags..." required>
         <small>Start typing to see suggestions or add new tags.</small>
         <br><br>
 
-        <!-- Submit Button -->
         <button type="submit">Add Raw Material</button>
-        <a href="{{ url_for('raw_materials') }}">
-            <button type="button">Cancel</button>
-        </a>
+        <button type="button" id="closeRawMaterialModal">Cancel</button>
     </form>
 
-    <script>
-        // Tagify initialization
-        const tagInput = document.querySelector('#tags');
-        const tagify = new Tagify(tagInput, {
-            whitelist: [], // Will be dynamically populated
-            dropdown: {
-                enabled: 1, // Suggest tags after 1 character
-            },
-        });
+    <!-- Vendor Modal -->
+    <div id="vendorModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" id="closeVendorModal">&times;</span>
+            <iframe id="vendorIframe" src="{{ url_for('add_vendor') }}" width="100%" height="400px" frameborder="0"></iframe>
+        </div>
+    </div>
 
-        // Fetch existing tags from the server
-        fetch("{{ url_for('fetch_tags') }}")
-            .then((res) => res.json())
-            .then((tags) => tagify.settings.whitelist = tags.map(tag => tag.name));
+    <script>
+        $(document).ready(function () {
+            // Open modal when clicking "+ Add Vendor"
+            $("#openAddVendorModal").click(function () {
+                $("#vendorModal").show();
+            });
+
+            // Close modal when clicking "X"
+            $("#closeVendorModal").click(function () {
+                $("#vendorModal").hide();
+                refreshVendorDropdown(); // Refresh vendor dropdown when modal closes
+            });
+
+            // Refresh vendor dropdown function
+            function refreshVendorDropdown() {
+                $.ajax({
+                    url: "{{ url_for('fetch_vendors') }}",
+                    method: "GET",
+                    success: function (vendors) {
+                        let vendorDropdown = $("#vendor_id");
+                        vendorDropdown.empty();
+                        vendorDropdown.append('<option value="">-- Select Vendor --</option>');
+
+                        vendors.forEach(vendor => {
+                            vendorDropdown.append(`<option value="${vendor.id}">${vendor.name}</option>`);
+                        });
+                    },
+                    error: function () {
+                        console.error("Failed to fetch vendors.");
+                    }
+                });
+            }
+
+            // Event listener for vendorAdded event (fired from iframe)
+            window.addEventListener("vendorAdded", function () {
+                $("#vendorModal").hide(); // Close the modal
+                refreshVendorDropdown(); // Refresh vendor dropdown
+            });
+
+            // Cancel button redirects to raw_materials.html
+            $("#closeRawMaterialModal").click(function () {
+                window.location.href = "{{ url_for('raw_materials') }}";
+            });
+
+            // Submit form via AJAX
+            $("#addRawMaterialForm").submit(function (event) {
+                event.preventDefault();
+                let formData = $(this).serialize();
+
+                $.ajax({
+                    url: "{{ url_for('add_raw_material') }}",
+                    method: "POST",
+                    data: formData,
+                    success: function (response) {
+                        alert("Raw Material Added Successfully!");
+                        window.location.href = "{{ url_for('raw_materials') }}"; // Redirect after success
+                    },
+                    error: function () {
+                        alert("Error adding raw material.");
+                    }
+                });
+            });
+
+            // Initialize Tagify
+            let tagInput = document.querySelector("#tags");
+            let tagify = new Tagify(tagInput, {
+                enforceWhitelist: false,
+                whitelist: [], // This will be dynamically populated
+                dropdown: {
+                    maxItems: 10,
+                    classname: "tagify-dropdown",
+                    enabled: 0, // Show dropdown immediately
+                    closeOnSelect: false
+                }
+            });
+
+            // Fetch tag suggestions
+            function fetchTags() {
+                $.ajax({
+                    url: "{{ url_for('fetch_tags') }}",
+                    method: "GET",
+                    success: function (response) {
+                        tagify.settings.whitelist = response; // Use the list of tag strings
+                    },
+                    error: function () {
+                        console.error("Failed to fetch tags.");
+                    }
+                });
+            }
+
+            // Call fetchTags to load tags when the page loads
+            fetchTags();
+        });
     </script>
-    
+
+
+    <style>
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 60%;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Tagify Styling */
+        .tagify {
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .tagify__tag {
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            padding: 4px 8px;
+            margin: 3px;
+        }
+
+        .tagify__tag-removeBtn {
+            color: white;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+
+        .tagify-dropdown {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+
 </body>
 </html>

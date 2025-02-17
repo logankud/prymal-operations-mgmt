@@ -225,6 +225,198 @@ def delete_product(product_id):
     # Redirect back to the home page
     return redirect(url_for("products"))
 
+@app.route("/product/<int:product_id>", methods=["GET"])
+def product_detail(product_id):
+    """
+    Fetch and display product details along with its snapshots.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Load queries from SQL files
+    product_query = load_sql_file("sql/get_product_details.sql")
+    snapshot_query = load_sql_file("sql/get_product_snapshots.sql")
+
+    # Fetch product details
+    cursor.execute(product_query, (product_id,))
+    product = cursor.fetchone()
+
+    if not product:
+        cursor.close()
+        conn.close()
+        return "Product not found.", 404
+
+    # Ensure price is a float before passing it to the template
+    product = list(product)  # Convert tuple to list (mutable)
+    try:
+        product[3] = float(product[3])  # Convert price to float
+    except ValueError:
+        product[3] = 0.00  # Default value if conversion fails
+
+    # Fetch snapshots for the product
+    cursor.execute(snapshot_query, (product_id,))
+    snapshots = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("product_detail.html", product=product, snapshots=snapshots)
+
+@app.route("/product/<int:product_id>/create_snapshot", methods=["GET"])
+def create_snapshot_form(product_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    product_query = load_sql_file("sql/get_product_details.sql")
+    recipe_query = load_sql_file("sql/get_product_recipes.sql")
+
+    cursor.execute(product_query, (product_id,))
+    product = cursor.fetchone()
+
+    cursor.execute(recipe_query, (product_id,))
+    recipes = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("create_snapshot.html", product=product, recipes=recipes)
+
+@app.route("/products/<int:product_id>/snapshots/<int:snapshot_version>")
+def view_snapshot(product_id, snapshot_version):
+    """
+    Fetches and displays a specific product snapshot.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Fetch snapshot details
+    query = load_sql_file("sql/get_product_snapshot.sql")
+    cursor.execute(query, (product_id, snapshot_version))
+    snapshot = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if not snapshot:
+        return "Snapshot not found.", 404
+
+    return render_template("view_snapshot.html", snapshot=snapshot)
+
+@app.route("/create_snapshot", methods=["POST"])
+def create_snapshot():
+    try:
+        product_id = request.form.get("product_id")
+        recipe_version = request.form.get("recipe_version")
+
+        print("Product ID:", product_id)
+        print("Recipe Version:", recipe_version)
+
+        if not product_id or not recipe_version:
+            raise ValueError("Missing product_id or recipe_version")
+
+        # Load SQL files
+        insert_query = load_sql_file("sql/insert_product_snapshot.sql")
+        product_details_query = load_sql_file("sql/get_product_details_for_snapshot.sql")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Fetch product details
+        cursor.execute(product_details_query, (product_id,))
+        product_details = cursor.fetchone()
+
+        if not product_details:
+            raise ValueError("Product not found")
+
+        name, sku, category_id, category_name, flavor_id, flavor_name, size_id, size_name = product_details
+
+        print("Executing Insert Query with:", product_id, recipe_version, name, sku, category_id, category_name, flavor_id, flavor_name, size_id, size_name)
+
+        # Execute insert query
+        cursor.execute(insert_query, (
+            product_id, product_id, name, sku, category_id, category_name,
+            flavor_id, flavor_name, size_id, size_name, recipe_version
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({"success": True, "message": "Snapshot created successfully!"})
+
+    except Exception as e:
+        print("Error inserting snapshot:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/search_products", methods=["GET"])
+def search_products():
+    """
+    Searches for products by name (case-insensitive) and returns matching results.
+    """
+    query = request.args.get("query", "").strip()
+
+    print(f"Searching for products with query: {query}")
+
+    if not query:
+        return jsonify([])  # Return empty list if no query provided
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Load SQL query from file
+    sql_query = load_sql_file("sql/search_products.sql")
+
+    try:
+        cursor.execute(sql_query, ('%' + query + '%',))  # Search by name (LIKE %query%)
+        products = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        print(f"Found {len(products)} products matching the query.")
+
+        # Format response as a list of dictionaries
+        return jsonify([{
+            "id": product[0],
+            "name": product[1]
+        } for product in products])
+
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": str(e)}), 500  # Return error response
+
+
+@app.route("/fetch_product_snapshots", methods=["GET"])
+def fetch_product_snapshots():
+    """
+    Fetches all existing product snapshots for a given product ID.
+    """
+    product_id = request.args.get("product_id")
+
+    if not product_id:
+        return jsonify({"error": "Missing product_id"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Load SQL query from file
+    sql_query = load_sql_file("sql/get_product_snapshots.sql")
+
+    cursor.execute(sql_query, (product_id,))
+    snapshots = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    # Format response as a list of dictionaries
+    results = [{
+        "snapshot_id": snapshot[0],
+        "version": snapshot[1],
+        "created_at": snapshot[2]
+    } for snapshot in snapshots]
+
+    return jsonify(results)
+
 
 @app.route("/categories")
 def categories():
@@ -735,6 +927,32 @@ def raw_materials():
                            raw_materials=formatted_raw_materials)
 
 
+@app.route("/fetch_raw_materials", methods=["GET"])
+def fetch_raw_materials():
+    """
+    Fetches all raw materials to update dropdown options dynamically.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = load_sql_file("sql/list_raw_materials.sql")
+    cursor.execute(query)
+    raw_materials = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    # Convert tuple results to dictionaries for JSON response
+    raw_materials_list = [{
+        "id": rm[0],
+        "name": rm[1],
+        "vendor": rm[2],
+        "unit_of_measure_name": rm[3]
+    } for rm in raw_materials]
+
+    return jsonify(raw_materials_list)
+
+
 @app.route("/raw_materials/add", methods=["GET", "POST"])
 def add_raw_material():
     """
@@ -927,6 +1145,28 @@ def vendors():
     return render_template("vendors.html", vendors=vendors)
 
 
+@app.route("/vendors/fetch", methods=["GET"])
+def fetch_vendors():
+    """
+    Fetch all vendors from the database for dynamic dropdown updates.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Load the SQL query from a file
+    query = load_sql_file("sql/list_vendors.sql")
+    cursor.execute(query)
+    vendors = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify([{
+        "id": vendor[0],
+        "name": vendor[1]
+    } for vendor in vendors])
+
+
 @app.route("/vendors/add", methods=["GET", "POST"])
 def add_vendor():
     if request.method == "POST":
@@ -1016,6 +1256,8 @@ def fetch_tags():
     """
     Fetch all tags from the database for autocomplete suggestions.
     """
+    print('fetch_tags()')
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -1027,7 +1269,25 @@ def fetch_tags():
     cursor.close()
     conn.close()
 
-    return jsonify([{"name": tag[0]} for tag in tags])
+    # Ensure proper extraction of tag values
+    clean_tags = []
+    for tag_tuple in tags:
+        tag_data = tag_tuple[0]  # Extract the first element from tuple
+        if isinstance(tag_data, str):
+            try:
+                parsed_tag = json.loads(tag_data)  # Convert JSON string to dict
+                if isinstance(parsed_tag, list):  # If it's a list of dicts
+                    clean_tags.extend(tag["value"] for tag in parsed_tag if "value" in tag)
+                elif isinstance(parsed_tag, dict) and "value" in parsed_tag:  # If it's a single dict
+                    clean_tags.append(parsed_tag["value"])
+            except json.JSONDecodeError:
+                clean_tags.append(tag_data)  # If it's already a string, keep it as is
+        elif isinstance(tag_data, dict) and "value" in tag_data:
+            clean_tags.append(tag_data["value"])
+
+    print(clean_tags)  # Debugging output to verify extraction
+
+    return jsonify(clean_tags)  # Return a clean list of tag strings
 
 
 @app.route("/recipes", methods=["GET"])
@@ -1035,14 +1295,47 @@ def recipes():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Fetch recipes with associated product names
-    query = load_sql_file("sql/list_recipes.sql")
-    cursor.execute(query)
-    recipes = cursor.fetchall()
+    # Load recipes query
+    recipes_query = load_sql_file("sql/list_recipes.sql")
+    cursor.execute(recipes_query)
+    rows = cursor.fetchall()
+
+    # Extract column names from cursor description
+    columns = [desc[0] for desc in cursor.description]
+
+    # Convert rows to dictionaries
+    recipes = []
+    for row in rows:
+        recipe = dict(zip(columns, row))
+
+        # Ensure raw_materials is parsed correctly
+        if isinstance(recipe.get("raw_materials"), str):
+            recipe["raw_materials"] = json.loads(recipe["raw_materials"])
+        elif recipe.get("raw_materials") is None:
+            recipe["raw_materials"] = []
+
+        # Ensure recipe_id and product_id are explicitly included
+        recipe["recipe_id"] = recipe.get("recipe_id")
+        recipe["product_id"] = recipe.get("product_id")  # Add product_id
+        recipes.append(recipe)
+
+    # Load products query
+    products_query = load_sql_file("sql/list_products.sql")
+    cursor.execute(products_query)
+    products = cursor.fetchall()  # Fetch products
 
     cursor.close()
     conn.close()
-    return render_template("recipes.html", recipes=recipes)
+
+    # Get selected product from query parameter
+    selected_product_id = request.args.get("product_id", "")
+
+    print(json.dumps(recipes, indent=2))
+
+    return render_template("recipes.html",
+                           recipes=recipes,
+                           products=products,
+                           selected_product_id=selected_product_id)
 
 
 @app.route("/recipes/add", methods=["GET", "POST"])
@@ -1051,55 +1344,36 @@ def add_recipe():
     cursor = conn.cursor()
 
     if request.method == "POST":
-        # Capture form data
         product_id = request.form.get("product_id")
         raw_materials = request.form.getlist("raw_material_id[]")
         quantities = request.form.getlist("quantity[]")
 
-        # Debug: Print form data to verify
-        print(f"Product ID: {product_id}")
-        print(f"Raw Materials: {raw_materials}")
-        print(f"Quantities: {quantities}")
+        if not product_id:
+            return "Error: Product ID is required", 400
 
-        if not product_id or not raw_materials or not quantities:
-            print("Error: Missing product_id, raw materials, or quantities")
-            return "Error: Missing product_id, raw materials, or quantities", 400
+        # Ensure a version is assigned
+        query = load_sql_file("sql/add_recipe.sql")
+        cursor.execute(query,
+                       (product_id, product_id))  # Pass product_id twice
+        recipe_id, version = cursor.fetchone()
 
-        try:
-            # Insert the recipe and get the new recipe ID
-            query = load_sql_file("sql/add_recipe.sql")
-            cursor.execute(query, (product_id, ))
-            recipe_id = cursor.fetchone()[0]
+        # Insert raw materials into recipe_raw_materials
+        query = load_sql_file("sql/add_recipe_raw_material.sql")
+        for raw_material_id, quantity in zip(raw_materials, quantities):
+            cursor.execute(query, (recipe_id, raw_material_id, quantity))
 
-            # Debug: Check if the recipe ID was generated
-            print(f"New Recipe ID: {recipe_id}")
-
-            # Insert raw materials into recipe_raw_materials
-            query = load_sql_file("sql/add_recipe_raw_material.sql")
-            for raw_material_id, quantity in zip(raw_materials, quantities):
-                print(
-                    f"Adding raw material {raw_material_id} with quantity {quantity} to recipe {recipe_id}"
-                )
-                cursor.execute(query, (recipe_id, raw_material_id, quantity))
-
-            # Commit the transaction
-            conn.commit()
-            print("Recipe successfully added!")
-        except Exception as e:
-            conn.rollback()
-            print(f"Database Error: {str(e)}")
-            return f"Error: {str(e)}", 500
-        finally:
-            cursor.close()
-            conn.close()
+        conn.commit()
+        cursor.close()
+        conn.close()
 
         return redirect(url_for("recipes"))
 
-    # GET: Display the recipe form
+    # Fetch available products
     query = load_sql_file("sql/list_products.sql")
     cursor.execute(query)
     products = cursor.fetchall()
 
+    # Fetch raw materials
     query = load_sql_file("sql/list_raw_materials.sql")
     cursor.execute(query)
     raw_materials = cursor.fetchall()
@@ -1177,9 +1451,12 @@ def delete_recipe(id):
     conn.close()
     return redirect(url_for("recipes"))
 
+
 @app.route("/fetch_recipe", methods=["GET"])
 def fetch_recipe():
-    # Retrieve and validate the product_id parameter.
+    """
+    Fetches the active recipe for the selected product, including required raw materials and inventory levels.
+    """
     product_id = request.args.get("product_id")
     if not product_id:
         return jsonify({"error": "Missing product_id"}), 400
@@ -1189,31 +1466,130 @@ def fetch_recipe():
     except ValueError:
         return jsonify({"error": "Invalid product_id format"}), 400
 
-    try:
-        # Open a database connection and load the SQL query.
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = load_sql_file("sql/fetch_recipe.sql")
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-        # Execute the query with the product_id parameter.
-        cursor.execute(query, (product_id,))
-        rows = cursor.fetchall()
+    # Fetch only the active recipe for this product
+    query = load_sql_file("sql/fetch_active_recipe.sql")
+    cursor.execute(query, (product_id, ))
+    rows = cursor.fetchall()
 
-        # Retrieve column names from the cursor description.
-        columns = [col[0] for col in cursor.description]
+    # Extract column names from cursor description
+    columns = [col[0] for col in cursor.description]
 
-        # Convert the rows into a list of dictionaries.
-        recipe_data = [dict(zip(columns, row)) for row in rows]
+    # Convert rows to a list of dictionaries
+    recipe_data = [dict(zip(columns, row)) for row in rows]
 
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        app.logger.error("Error fetching recipe for product %s: %s", product_id, str(e), exc_info=True)
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+    cursor.close()
+    conn.close()
 
     return jsonify(recipe_data)
 
 
+@app.route("/recipes/view/<int:recipe_id>")
+def view_recipe(recipe_id):
+    """ View details of a specific recipe version. """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = load_sql_file("sql/get_recipe_details.sql")
+    cursor.execute(query, (recipe_id, ))
+    recipe = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("recipe_details.html", recipe=recipe)
+
+
+@app.route("/recipes/activate/<int:id>", methods=["POST"])
+def activate_recipe(id):
+    """ Activate a recipe version (set all others to inactive). """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Deactivate all recipes for the product
+    query = load_sql_file("sql/deactivate_recipes.sql")
+    cursor.execute(query, (id, ))
+
+    # Activate the selected recipe
+    query = load_sql_file("sql/activate_recipe.sql")
+    cursor.execute(query, (id, ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return redirect(url_for("recipes"))
+
+
+@app.route("/recipes/deactivate/<int:id>", methods=["POST"])
+def deactivate_recipe(id):
+    """ Deactivate a recipe version. """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = load_sql_file("sql/deactivate_recipe.sql")
+    cursor.execute(query, (id, ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return redirect(url_for("recipes"))
+
+@app.route("/recipes/fetch_versions", methods=["GET"])
+def fetch_recipe_versions():
+    recipe_version = request.args.get("recipe_version")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = load_sql_file("sql/get_recipe_details.sql")
+    cursor.execute(query, (recipe_version,))
+    recipe_details = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    # Debugging log
+    print(f"Recipe Details for version {recipe_version}: {recipe_details}")
+
+    # Convert SQL result into JSON response
+    response_data = [
+        {
+            "raw_material": row[0],  # Raw Material Name
+            "quantity": row[1],  # Quantity
+            "unit_of_measure": row[2],  # UoM Tag
+            "vendor_name": row[3]  # Vendor Name
+        } 
+        for row in recipe_details
+    ]
+
+    print(f"JSON Response: {response_data}")  # Debugging Output
+    return jsonify(response_data)
+
+
+@app.route("/recipes/fetch_details", methods=["GET"])
+def fetch_recipe_details():
+    recipe_id = request.args.get("recipe_id")
+    if not recipe_id:
+        return jsonify({"error": "Missing recipe_id"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = load_sql_file("sql/fetch_recipe_details.sql")
+    cursor.execute(query, (recipe_id, ))
+    details = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return jsonify([{
+        "raw_material_name": d[0],
+        "quantity": d[1],
+        "unit": d[2]
+    } for d in details])
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000,debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -32,3 +32,102 @@ a.active {
   background-color: #f8d7da; /* light red/pink */
   color: #721c24;           /* dark red text */
 }
+
+.product-name {
+    text-decoration: none;
+    color: black; /* Default text color */
+    font-weight: bold;
+    padding: 5px 10px; /* Space inside the button */
+    border-radius: 5px; /* Rounded corners */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: inline-block;
+}
+
+.product-name:hover {
+    background-color: #4caf50; /* Green background on hover */
+    color: white; /* White text when hovered */
+    cursor: pointer;
+}
+
+.product-name::before {
+    content: "🔗"; /* Add a link icon */
+    font-size: 14px;
+    position: absolute;
+    left: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.product-name:hover::before {
+    opacity: 1; /* Show icon when hovered */
+}
+
+.product-name-btn {
+    display: inline-block;
+    background-color: #E5E5E5; /* Match edit/delete button color */
+    border: 1px solid #8A9A5B; /* Match border */
+    color: #2D3B32 !important; /* Ensure it matches text color */
+    padding: 6px 12px; /* Adjust padding */
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none !important; /* Remove underline */
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+.product-name-btn:hover {
+    background-color: #D0D0D0; /* Slightly darker hover effect */
+    color: black !important;
+    text-decoration: none !important;
+}
+
+
+
+/* Highlight the active recipe version */
+.active-recipe {
+    background-color: #d4edda; /* Light green */
+    font-weight: bold;
+}
+
+/* Style for recipe version links */
+.recipe-version {
+    text-decoration: none;
+    color: #007bff;
+    font-weight: bold;
+}
+
+.recipe-version:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Style for deactivate button */
+.deactivate-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.deactivate-btn:hover {
+    background-color: #c82333;
+}
+
+
+#productsTable a {
+    text-decoration: none !important;
+    color: #2D3B32 !important;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#productsTable a:hover {
+    background-color: #D0D0D0 !important;
+    color: black !important;
+}

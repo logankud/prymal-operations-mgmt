@@ -3,187 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
     <title>Production Management Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    
+    <!-- DataTables & jQuery -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 
     <style>
+        /* Prymal Theme */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7F2E9;
+            color: #2D3B32;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #2D3B32;
+            font-weight: 600;
+        }
+
+        /* Table Styling */
         table {
             width: 100%;
             border-collapse: collapse;
+            background-color: #FFFDF5;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        table, th, td {
-            border: 1px solid black;
+
+        thead {
+            background-color: #8A9A5B;
+            color: #FFFFFF;
         }
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
+
+        thead th {
+            padding: 12px;
             cursor: pointer;
         }
-        th.sort-asc::after {
-            content: " ▲";
+
+        tbody tr {
+            border-bottom: 1px solid #E6E6E6;
+            transition: 0.3s;
         }
-        th.sort-desc::after {
-            content: " ▼";
+
+        tbody tr:hover {
+            background-color: #F0ECE0;
         }
-        #filterInput {
-            margin-bottom: 10px;
-            padding: 5px;
-            width: 100%;
-            box-sizing: border-box;
+
+        td, th {
+            padding: 12px;
+            text-align: left;
+        }
+
+        /* Conditional Formatting - Square Icon */
+        .highlight {
+            border: 2px solid #C63B1E !important;
+            border-radius: 5px;
+            padding: 3px;
+            font-weight: bold;
+            color: #C63B1E;
         }
     </style>
+
+    <script>
+        $(document).ready(function () {
+            let table = $('#productsTable').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "lengthMenu": [10, 25, 50, 100],
+                "language": {
+                    "search": "🔍 Search:",
+                    "lengthMenu": "Show _MENU_ entries"
+                }
+            });
+
+            // Apply conditional formatting for missing data
+            $('#productsTable tbody tr').each(function () {
+                let categoryCell = $(this).find('td:nth-child(4)');
+                let flavorCell = $(this).find('td:nth-child(5)');
+                let sizeCell = $(this).find('td:nth-child(6)');
+                let createdAtCell = $(this).find('td:nth-child(7)');
+                let updatedAtCell = $(this).find('td:nth-child(8)');
+
+                // Highlight missing values
+                if (categoryCell.text().trim() === 'No Category') categoryCell.addClass('highlight');
+                if (flavorCell.text().trim() === 'No Flavor') flavorCell.addClass('highlight');
+                if (sizeCell.text().trim() === 'No Size') sizeCell.addClass('highlight');
+
+                // Format timestamps to YYYY-MM-DD HH:MM:SS
+                let createdAt = new Date(createdAtCell.text().trim());
+                let updatedAt = new Date(updatedAtCell.text().trim());
+
+                if (!isNaN(createdAt.getTime())) {
+                    createdAtCell.text(createdAt.toISOString().slice(0, 19).replace("T", " "));
+                }
+                if (!isNaN(updatedAt.getTime())) {
+                    updatedAtCell.text(updatedAt.toISOString().slice(0, 19).replace("T", " "));
+                }
+            });
+        });
+    </script>
 </head>
 <body>
-
-    <!-- Home Icon -->
-    <a href="{{ url_for('home') }}" id="home-icon">&#8962;</a> <!-- Unicode for home icon -->
-
     
-    <h1>Production Management Dashboard</h1>
-
     <!-- Tabs for Navigation -->
     <div style="display: flex; gap: 20px; border-bottom: 1px solid #ccc; padding: 10px 0;">
-        <a href="{{ url_for('manufacturing_orders') }}" 
-               class="{{ 'active' if request.path == url_for('manufacturing_orders') else '' }}">Manufacturing Orders</a>
-        <a href="{{ url_for('products') }}" 
-           class="{{ 'active' if request.path == url_for('products') else '' }}">Products</a>
-        <a href="{{ url_for('categories') }}" 
-           class="{{ 'active' if request.path == url_for('categories') else '' }}">Categories</a>
-        <a href="{{ url_for('flavors') }}" 
-           class="{{ 'active' if request.path == url_for('flavors') else '' }}">Flavors</a>
-        <a href="{{ url_for('sizes') }}" 
-           class="{{ 'active' if request.path == url_for('sizes') else '' }}">Sizes</a>
-        <a href="{{ url_for('vendors') }}" 
-               class="{{ 'active' if request.path == url_for('vendors') else '' }}">Vendors</a>
-        <a href="{{ url_for('raw_materials') }}" 
-               class="{{ 'active' if request.path == url_for('raw_materials') else '' }}">Raw Materials</a>
-        <a href="{{ url_for('recipes') }}" 
-               class="{{ 'active' if request.path == url_for('raw_materials') else '' }}">Recipes</a>
-
+        <a href="{{ url_for('manufacturing_orders') }}">Manufacturing Orders</a>
+        <a href="{{ url_for('products') }}">Products</a>
+        <a href="{{ url_for('categories') }}">Categories</a>
+        <a href="{{ url_for('flavors') }}">Flavors</a>
+        <a href="{{ url_for('sizes') }}">Sizes</a>
+        <a href="{{ url_for('vendors') }}">Vendors</a>
+        <a href="{{ url_for('raw_materials') }}">Raw Materials</a>
+        <a href="{{ url_for('recipes') }}" class="active">Recipes</a>
     </div>
 
+    <h1>Production Management Dashboard</h1>
 
-    <br><br>
-
-
-    <!-- Filter Input -->
-    <input type="text" id="filterInput" placeholder="Search for products..." onkeyup="filterTable()">
-    
     <!-- Products Table -->
     <h2>All Products</h2>
     <a href="{{ url_for('add_product') }}">
         <button>Add Product</button>
     </a>
     <br><br>
-    <table id="productsTable" border="1" cellpadding="5" cellspacing="0">
+    
+    <table id="productsTable">
         <thead>
             <tr>
-                <th onclick="sortTable(0)">ID</th>
-                <th onclick="sortTable(1)">Name</th>
-                <th onclick="sortTable(2)">SKU</th>
-                <th onclick="sortTable(3)">Price (USD)</th>
-                <th onclick="sortTable(4)">Description</th>
-                <th onclick="sortTable(5)">Category</th>
-                <th onclick="sortTable(6)">Flavor</th>
-                <th onclick="sortTable(7)">Size</th>
-                <th onclick="sortTable(8)">Created At</th>
-                <th onclick="sortTable(9)">Updated At</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>Flavor</th>
+                <th>Size</th>
+                <th>Created At</th>
+                <th>Updated At</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            {% for product in products %}
+            {% if products %}
+                {% for product in products %}
+                    <tr>
+                        <td>{{ product[0] }}</td> <!-- ID -->
+                        <td>
+                            <a href="{{ url_for('product_detail', product_id=product[0]) }}" class="product-name-btn">
+                                {{ product[1] }}
+                            </a>
+                        </td>
+ <!-- Name -->
+                        <td>{{ product[2] }}</td> <!-- SKU -->
+                        <td>{{ product[7] or 'No Category' }}</td> <!-- Category -->
+                        <td>{{ product[8] or 'No Flavor' }}</td> <!-- Flavor -->
+                        <td>{{ product[9] or 'No Size' }}</td> <!-- Size -->
+                        <td>{{ product[5] }}</td> <!-- Created At -->
+                        <td>{{ product[6] }}</td> <!-- Updated At -->
+                        <td>
+                            <a href="{{ url_for('edit_product', product_id=product[0]) }}">
+                                <button>Edit</button>
+                            </a>
+                            <form action="{{ url_for('delete_product', product_id=product[0]) }}" method="POST" style="display:inline;">
+                                <button type="submit" onclick="return confirm('Are you sure you want to delete this product?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
                 <tr>
-                    <td>{{ product[0] }}</td> <!-- ID -->
-                    <td>{{ product[1] }}</td> <!-- Name -->
-                    <td>{{ product[2] }}</td> <!-- SKU -->
-                    <td>${{ "%.2f" | format(product[3]) }}</td> <!-- Price -->
-                    <td>{{ product[4] }}</td> <!-- Description -->
-                    <td>{{ product[7] or 'No Category' }}</td> <!-- Category -->
-                    <td>{{ product[8] or 'No Flavor' }}</td> <!-- Flavor -->
-                    <td>{{ product[9] or 'No Size' }}</td> <!-- Size -->
-                    <td>{{ product[5] }}</td> <!-- Created At -->
-                    <td>{{ product[6] }}</td> <!-- Updated At -->
-                    <td>
-                        <!-- Edit Button -->
-                        <a href="{{ url_for('edit_product', product_id=product[0]) }}">
-                            <button>Edit</button>
-                        </a>
-                        <!-- Delete Button -->
-                        <form action="{{ url_for('delete_product', product_id=product[0]) }}" method="POST" style="display:inline;">
-                            <button type="submit" onclick="return confirm('Are you sure you want to delete this product?');">Delete</button>
-                        </form>
-                    </td>
+                    <td colspan="9" style="text-align: center;">No products available.</td>
                 </tr>
-            {% endfor %}
+            {% endif %}
         </tbody>
     </table>
 
-    <!-- Footer -->
-    <br>
-    <footer>
-        <a href="https://yourwebsite.com">Visit our website</a>
-    </footer>
-
-    <script>
-        function filterTable() {
-            const input = document.getElementById('filterInput');
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById('productsTable');
-            const rows = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < rows.length; i++) {
-                let match = false;
-                const cells = rows[i].getElementsByTagName('td');
-
-                for (let j = 0; j < cells.length; j++) {
-                    if (cells[j]) {
-                        const cellValue = cells[j].textContent || cells[j].innerText;
-                        if (cellValue.toUpperCase().indexOf(filter) > -1) {
-                            match = true;
-                            break;
-                        }
-                    }
-                }
-                rows[i].style.display = match ? '' : 'none';
-            }
-        }
-
-        function sortTable(columnIndex) {
-            const table = document.getElementById('productsTable');
-            const rows = Array.from(table.rows).slice(1); // Exclude header row
-            let isAscending = table.querySelectorAll('th')[columnIndex].classList.toggle('sort-asc');
-
-            // Remove previous sort indicators
-            Array.from(table.querySelectorAll('th')).forEach((th, idx) => {
-                if (idx !== columnIndex) {
-                    th.classList.remove('sort-asc', 'sort-desc');
-                }
-            });
-
-            rows.sort((rowA, rowB) => {
-                const cellA = rowA.cells[columnIndex].innerText.trim().toUpperCase();
-                const cellB = rowB.cells[columnIndex].innerText.trim().toUpperCase();
-
-                if (!isNaN(cellA) && !isNaN(cellB)) {
-                    return isAscending ? cellA - cellB : cellB - cellA; // Numeric comparison
-                } else {
-                    return isAscending
-                        ? cellA.localeCompare(cellB) // String comparison
-                        : cellB.localeCompare(cellA);
-                }
-            });
-
-            // Rebuild the table
-            const tbody = table.getElementsByTagName('tbody')[0];
-            rows.forEach(row => tbody.appendChild(row));
-
-            // Update sort direction
-            table.querySelectorAll('th')[columnIndex].classList.toggle('sort-desc', !isAscending);
-        }
-    </script>
 </body>
 </html>
